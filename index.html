@@ -37,7 +37,6 @@
     overflow-x: hidden;
   }
 
-  /* Ambient background */
   body::before {
     content: '';
     position: fixed;
@@ -142,6 +141,15 @@
     background: linear-gradient(135deg, #fff 0%, var(--gold) 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     margin-bottom: 28px;
+    transition: all 0.4s;
+  }
+  .balance-amount.balance-positive {
+    background: linear-gradient(135deg, #fff 0%, var(--gold) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .balance-amount.balance-negative {
+    background: linear-gradient(135deg, #fff 0%, var(--red) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   }
   .balance-stats {
     display: flex; gap: 28px; flex-wrap: wrap;
@@ -152,10 +160,10 @@
   .stat-icon {
     width: 36px; height: 36px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1rem;
+    font-size: 1rem; font-weight: 700;
   }
-  .stat-icon.income { background: var(--teal-dim); }
-  .stat-icon.expense { background: var(--red-dim); }
+  .stat-icon.income { background: var(--teal-dim); color: var(--teal); }
+  .stat-icon.expense { background: var(--red-dim); color: var(--red); }
   .stat-label { font-size: 0.72rem; color: var(--text3); margin-bottom: 2px; }
   .stat-value { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.05rem; }
   .stat-value.income { color: var(--teal); }
@@ -254,6 +262,11 @@
     background: rgba(255,255,255,0.08);
     box-shadow: 0 0 0 3px rgba(245,200,66,0.08);
   }
+  /* Error state for inputs */
+  input.error, select.error {
+    border-color: rgba(255,95,126,0.5);
+    box-shadow: 0 0 0 3px rgba(255,95,126,0.08);
+  }
   select option { background: #1a1a2e; color: var(--text); }
   input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
 
@@ -331,16 +344,29 @@
     border-radius: var(--radius-sm);
     padding: 14px 16px;
     display: flex; align-items: center; gap: 14px;
-    transition: all 0.25s; animation: slideIn 0.35s ease;
+    transition: all 0.25s;
   }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to   { opacity: 1; transform: translateY(0); }
+  /* New transaction pop animation */
+  @keyframes txnPop {
+    0%   { opacity: 0; transform: translateY(-12px) scale(0.97); }
+    60%  { opacity: 1; transform: translateY(2px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .txn-card.new-txn {
+    animation: txnPop 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards;
   }
   .txn-card:hover {
     border-color: rgba(255,255,255,0.14);
-    transform: translateX(3px);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    transform: translateX(4px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+    cursor: default;
+  }
+  /* Income and expense left border accents */
+  .txn-card.txn-income {
+    border-left: 2px solid rgba(0,212,170,0.35);
+  }
+  .txn-card.txn-expense {
+    border-left: 2px solid rgba(255,95,126,0.35);
   }
   .txn-icon {
     width: 42px; height: 42px; border-radius: 12px;
@@ -368,16 +394,29 @@
   .del-btn {
     background: transparent; border: none;
     color: var(--text3); cursor: pointer;
-    font-size: 0.9rem; padding: 4px; border-radius: 6px;
+    font-size: 0.9rem; padding: 4px 6px; border-radius: 6px;
     transition: all 0.2s; flex-shrink: 0;
+    opacity: 0;
   }
+  .txn-card:hover .del-btn { opacity: 1; }
   .del-btn:hover { background: var(--red-dim); color: var(--red); }
 
+  /* ─── Empty state ─── */
   .empty-state {
-    text-align: center; padding: 48px 20px;
-    color: var(--text3); font-size: 0.88rem;
+    text-align: center; padding: 52px 20px;
+    color: var(--text3);
   }
-  .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+  .empty-icon {
+    font-size: 2.8rem; margin-bottom: 14px; opacity: 0.4;
+    display: block;
+  }
+  .empty-title {
+    font-family: 'Syne', sans-serif; font-weight: 600;
+    font-size: 1rem; color: var(--text2); margin-bottom: 6px;
+  }
+  .empty-subtitle {
+    font-size: 0.8rem; color: var(--text3); line-height: 1.5;
+  }
 
   /* ─── Right sidebar ─── */
   .sidebar { display: flex; flex-direction: column; gap: 20px; }
@@ -392,11 +431,12 @@
     font-size: 0.8rem; color: var(--text2);
     display: flex; align-items: flex-start; gap: 10px;
     animation: fadeIn 0.4s ease;
+    line-height: 1.5;
   }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   .insight-dot {
     width: 8px; height: 8px; border-radius: 50%;
-    margin-top: 4px; flex-shrink: 0;
+    margin-top: 5px; flex-shrink: 0;
   }
   .insight-dot.gold { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
   .insight-dot.teal { background: var(--teal); box-shadow: 0 0 6px var(--teal); }
@@ -461,14 +501,28 @@
   /* ─── Toast ─── */
   .toast {
     position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
-    background: rgba(20,24,35,0.95); border: 1px solid var(--card-border);
     backdrop-filter: blur(20px); color: var(--text);
-    padding: 12px 24px; border-radius: 99px;
+    padding: 12px 22px; border-radius: 99px;
     font-size: 0.82rem; font-weight: 500; z-index: 300;
-    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
-    white-space: nowrap;
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+    white-space: nowrap; opacity: 0;
+    display: flex; align-items: center; gap: 8px;
   }
-  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.income-toast {
+    background: rgba(0,40,30,0.95);
+    border: 1px solid rgba(0,212,170,0.3);
+    box-shadow: 0 4px 24px rgba(0,212,170,0.15);
+  }
+  .toast.expense-toast {
+    background: rgba(40,8,18,0.95);
+    border: 1px solid rgba(255,95,126,0.3);
+    box-shadow: 0 4px 24px rgba(255,95,126,0.15);
+  }
+  .toast.neutral-toast {
+    background: rgba(20,24,35,0.95);
+    border: 1px solid var(--card-border);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width: 5px; }
@@ -509,7 +563,7 @@
     <!-- Balance -->
     <div class="balance-card">
       <div class="balance-label">Total Balance</div>
-      <div class="balance-amount" id="totalBalance">₹0.00</div>
+      <div class="balance-amount balance-positive" id="totalBalance">₹0</div>
       <div class="balance-stats">
         <div class="stat-item">
           <div class="stat-icon income">↑</div>
@@ -526,7 +580,7 @@
           </div>
         </div>
         <div class="stat-item">
-          <div class="stat-icon" style="background:rgba(255,255,255,0.06)">📅</div>
+          <div class="stat-icon" style="background:rgba(255,255,255,0.06);font-size:0.9rem">📅</div>
           <div>
             <div class="stat-label">This Month</div>
             <div class="stat-value" id="monthExpense" style="color:var(--text)">₹0</div>
@@ -569,19 +623,13 @@
       <div class="field-wrap">
         <label class="field-label">Amount</label>
         <span class="field-icon">₹</span>
-        <input type="number" id="amount" placeholder="0.00" min="0" step="0.01">
+        <input type="number" id="amount" placeholder="0.00" min="0.01" step="0.01">
       </div>
       <div class="field-wrap">
         <label class="field-label">Category</label>
         <span class="field-icon">🏷</span>
         <select id="category">
-          <option value="Food">🍽 Food</option>
-          <option value="Travel">✈️ Travel</option>
-          <option value="Petrol">⛽ Petrol</option>
-          <option value="Tea">☕ Tea</option>
-          <option value="Shopping">🛍 Shopping</option>
-          <option value="Bills">📄 Bills</option>
-          <option value="Other">📦 Other</option>
+          <option value="" disabled selected>Select category (optional)</option>
         </select>
       </div>
       <div class="field-wrap">
@@ -617,8 +665,9 @@
       </div>
       <div class="txn-list" id="txnList">
         <div class="empty-state">
-          <div class="empty-icon">💳</div>
-          <div>No transactions yet.<br>Add one above to get started.</div>
+          <span class="empty-icon">💳</span>
+          <div class="empty-title">No transactions yet</div>
+          <div class="empty-subtitle">Start tracking your money.<br>Add your first income or expense above.</div>
         </div>
       </div>
     </div>
@@ -670,7 +719,7 @@
 </div>
 
 <!-- Toast -->
-<div class="toast" id="toast"></div>
+<div class="toast neutral-toast" id="toast"></div>
 
 <script>
 // ─── State ───────────────────────────────────────────────
@@ -680,22 +729,53 @@ let currentType = 'expense';
 let currentFilter = 'all';
 let pieChart, barChart;
 
+// ─── Category config per type ─────────────────────────────
+const EXPENSE_CATS = ['Food','Travel','Petrol','Tea','Shopping','Bills','Other'];
+const INCOME_CATS  = ['Salary','Business','Freelance','Gift','Other'];
+
 const CATS = {
-  Food:     { emoji:'🍽', color:'#f5c842' },
-  Travel:   { emoji:'✈️', color:'#00d4aa' },
-  Petrol:   { emoji:'⛽', color:'#ff9f43' },
-  Tea:      { emoji:'☕', color:'#a29bfe' },
-  Shopping: { emoji:'🛍', color:'#fd79a8' },
-  Bills:    { emoji:'📄', color:'#74b9ff' },
-  Other:    { emoji:'📦', color:'#636e72' },
+  // Expense
+  Food:      { emoji:'🍽',  color:'#f5c842' },
+  Travel:    { emoji:'✈️',  color:'#00d4aa' },
+  Petrol:    { emoji:'⛽',  color:'#ff9f43' },
+  Tea:       { emoji:'☕',  color:'#a29bfe' },
+  Shopping:  { emoji:'🛍',  color:'#fd79a8' },
+  Bills:     { emoji:'📄',  color:'#74b9ff' },
+  // Income
+  Salary:    { emoji:'💼',  color:'#00d4aa' },
+  Business:  { emoji:'🏢',  color:'#55efc4' },
+  Freelance: { emoji:'💻',  color:'#81ecec' },
+  Gift:      { emoji:'🎁',  color:'#fdcb6e' },
+  // Shared
+  Other:     { emoji:'📦',  color:'#636e72' },
+};
+
+const CAT_EMOJIS = {
+  Food:'🍽', Travel:'✈️', Petrol:'⛽', Tea:'☕',
+  Shopping:'🛍', Bills:'📄', Salary:'💼', Business:'🏢',
+  Freelance:'💻', Gift:'🎁', Other:'📦'
 };
 
 // ─── Init ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('date').valueAsDate = new Date();
+  populateCategorySelect('expense'); // default to expense
   renderAll();
   initCharts();
 });
+
+// ─── Dynamic category select ──────────────────────────────
+function populateCategorySelect(type) {
+  const sel = document.getElementById('category');
+  const cats = type === 'income' ? INCOME_CATS : EXPENSE_CATS;
+  sel.innerHTML = `<option value="" disabled selected>Select category (optional)</option>`;
+  cats.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = `${CAT_EMOJIS[c] || '📦'} ${c}`;
+    sel.appendChild(opt);
+  });
+}
 
 function renderAll() {
   renderBalance();
@@ -710,44 +790,100 @@ function setType(t) {
   currentType = t;
   document.getElementById('btnExpense').className = 'type-btn' + (t==='expense' ? ' active expense' : '');
   document.getElementById('btnIncome').className  = 'type-btn' + (t==='income'  ? ' active income'  : '');
+  // Switch categories dynamically
+  populateCategorySelect(t);
 }
 
 // ─── Add transaction ──────────────────────────────────────
 function addTransaction() {
-  const amount = parseFloat(document.getElementById('amount').value);
-  const category = document.getElementById('category').value;
-  const date = document.getElementById('date').value;
-  const description = document.getElementById('description').value.trim();
+  const amountEl = document.getElementById('amount');
+  const dateEl   = document.getElementById('date');
+  const descEl   = document.getElementById('description');
+  const catEl    = document.getElementById('category');
 
-  if (!amount || amount <= 0) return showToast('⚠️ Enter a valid amount');
-  if (!date) return showToast('⚠️ Pick a date');
+  const amount      = parseFloat(amountEl.value);
+  const date        = dateEl.value;
+  const description = descEl.value.trim();
+
+  // Clear error states
+  [amountEl, dateEl].forEach(el => el.classList.remove('error'));
+
+  // Validate
+  let hasError = false;
+  if (!amount || amount <= 0 || isNaN(amount)) {
+    amountEl.classList.add('error');
+    showToast('⚠️ Enter a valid amount', 'neutral');
+    hasError = true;
+  }
+  if (!date) {
+    dateEl.classList.add('error');
+    if (!hasError) showToast('⚠️ Please pick a date', 'neutral');
+    hasError = true;
+  }
+  if (hasError) return;
+
+  // Default category to "Other" if not selected
+  const category = catEl.value || 'Other';
 
   const txn = {
     id: Date.now(),
     type: currentType,
-    amount, category, date,
+    amount,
+    category,
+    date,
     description: description || category,
   };
+
   transactions.unshift(txn);
   save();
   renderAll();
-  document.getElementById('amount').value = '';
-  document.getElementById('description').value = '';
-  showToast(currentType === 'expense' ? '💸 Expense added' : '✅ Income added');
+
+  // Clear inputs (keep date)
+  amountEl.value = '';
+  descEl.value   = '';
+  catEl.selectedIndex = 0;
+
+  // Mark the new card for animation
+  const firstCard = document.querySelector('#txnList .txn-card');
+  if (firstCard) {
+    firstCard.classList.add('new-txn');
+    setTimeout(() => firstCard.classList.remove('new-txn'), 600);
+  }
+
+  // Meaningful toast
+  const fmtAmt = fmt(amount);
+  if (currentType === 'income') {
+    showToast(`${fmtAmt} added as Income`, 'income');
+  } else {
+    showToast(`${fmtAmt} added as Expense`, 'expense');
+  }
 }
 
 // ─── Balance ──────────────────────────────────────────────
 function renderBalance() {
-  const income  = transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  const balance = income - expense;
+  // FIX: Correctly compute balance = income - expense
+  const income  = transactions
+    .filter(t => t.type === 'income')
+    .reduce((s, t) => s + t.amount, 0);
+  const expense = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((s, t) => s + t.amount, 0);
+  const balance = income - expense;  // expense reduces balance
 
   const now = new Date();
   const monthExp = transactions
-    .filter(t=>t.type==='expense' && new Date(t.date).getMonth()===now.getMonth() && new Date(t.date).getFullYear()===now.getFullYear())
-    .reduce((s,t)=>s+t.amount,0);
+    .filter(t =>
+      t.type === 'expense' &&
+      new Date(t.date).getMonth()     === now.getMonth() &&
+      new Date(t.date).getFullYear()  === now.getFullYear()
+    )
+    .reduce((s, t) => s + t.amount, 0);
 
-  document.getElementById('totalBalance').textContent = fmt(balance);
+  const balEl = document.getElementById('totalBalance');
+  balEl.textContent = fmt(balance);
+  // Colour-code the balance
+  balEl.className = 'balance-amount ' + (balance >= 0 ? 'balance-positive' : 'balance-negative');
+
   document.getElementById('totalIncome').textContent  = fmt(income);
   document.getElementById('totalExpense').textContent = fmt(expense);
   document.getElementById('monthExpense').textContent = fmt(monthExp);
@@ -755,61 +891,72 @@ function renderBalance() {
 
 // ─── Goal ─────────────────────────────────────────────────
 function renderGoal() {
-  const income  = transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const income  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const saved   = Math.max(0, income - expense);
 
   document.getElementById('goalSaved').textContent = fmt(saved);
 
   if (!goal) {
-    document.getElementById('goalName').textContent = 'Set your goal';
+    document.getElementById('goalName').textContent   = 'Set your goal';
     document.getElementById('goalTarget').textContent = 'Target: ₹0';
-    document.getElementById('goalBar').style.width = '0%';
-    document.getElementById('goalPct').textContent = '0%';
+    document.getElementById('goalBar').style.width    = '0%';
+    document.getElementById('goalPct').textContent    = '0%';
     document.getElementById('goalStatus').textContent = 'Set a savings goal to track progress';
-    document.getElementById('goalStatus').className = 'goal-status low';
+    document.getElementById('goalStatus').className   = 'goal-status low';
     return;
   }
 
   const pct = Math.min(100, (saved / goal.amount) * 100);
-  document.getElementById('goalName').textContent = goal.name;
+  document.getElementById('goalName').textContent   = goal.name;
   document.getElementById('goalTarget').textContent = `Target: ${fmt(goal.amount)}`;
-  document.getElementById('goalBar').style.width = pct + '%';
-  document.getElementById('goalPct').textContent = pct.toFixed(0) + '%';
+  document.getElementById('goalBar').style.width    = pct + '%';
+  document.getElementById('goalPct').textContent    = pct.toFixed(0) + '%';
 
   const statusEl = document.getElementById('goalStatus');
   if (pct >= 100) {
     statusEl.textContent = '🎉 Goal achieved! Incredible discipline!';
-    statusEl.className = 'goal-status high';
+    statusEl.className   = 'goal-status high';
   } else if (pct >= 60) {
     statusEl.textContent = `Almost there! ${fmt(goal.amount - saved)} more to go.`;
-    statusEl.className = 'goal-status mid';
+    statusEl.className   = 'goal-status mid';
   } else {
     statusEl.textContent = `Keep saving! ${fmt(goal.amount - saved)} remaining.`;
-    statusEl.className = 'goal-status low';
+    statusEl.className   = 'goal-status low';
   }
 }
 
 // ─── Transactions ─────────────────────────────────────────
 function renderTxns() {
   const list = document.getElementById('txnList');
-  let filtered = currentFilter === 'all' ? transactions
+  const filtered = currentFilter === 'all'
+    ? transactions
     : transactions.filter(t => t.type === currentFilter);
 
   document.getElementById('txnCount').textContent = filtered.length;
 
   if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">💳</div><div>No ${currentFilter === 'all' ? '' : currentFilter} transactions yet.</div></div>`;
+    const emptyMsg = currentFilter === 'all'
+      ? 'No transactions yet. Start tracking your money.'
+      : currentFilter === 'income'
+        ? 'No income entries yet.'
+        : 'No expenses recorded yet.';
+    list.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">💳</span>
+        <div class="empty-title">Nothing here yet</div>
+        <div class="empty-subtitle">${emptyMsg}</div>
+      </div>`;
     return;
   }
 
   list.innerHTML = filtered.map(t => {
-    const cat = CATS[t.category] || CATS.Other;
-    const sign = t.type === 'income' ? '+' : '-';
-    const d = new Date(t.date + 'T00:00:00');
+    const cat     = CATS[t.category] || CATS.Other;
+    const sign    = t.type === 'income' ? '+' : '−';
+    const d       = new Date(t.date + 'T00:00:00');
     const dateStr = d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
     return `
-    <div class="txn-card" id="txn-${t.id}">
+    <div class="txn-card txn-${t.type}" id="txn-${t.id}">
       <div class="txn-icon" style="background:${cat.color}22;font-size:1.3rem">${cat.emoji}</div>
       <div class="txn-info">
         <div class="txn-desc">${esc(t.description)}</div>
@@ -818,7 +965,7 @@ function renderTxns() {
         </div>
       </div>
       <div class="txn-amount ${t.type}">${sign}${fmt(t.amount)}</div>
-      <button class="del-btn" onclick="deleteTxn(${t.id})">✕</button>
+      <button class="del-btn" onclick="deleteTxn(${t.id})" title="Delete">✕</button>
     </div>`;
   }).join('');
 }
@@ -833,21 +980,23 @@ function filterTxns(f, el) {
 function deleteTxn(id) {
   transactions = transactions.filter(t => t.id !== id);
   save(); renderAll();
-  showToast('🗑 Transaction deleted');
+  showToast('Transaction removed', 'neutral');
 }
 
 function clearAll() {
   if (!transactions.length) return;
-  if (!confirm('Clear all transactions?')) return;
+  if (!confirm('Clear all transactions? This cannot be undone.')) return;
   transactions = []; save(); renderAll();
-  showToast('🗑 All cleared');
+  showToast('All transactions cleared', 'neutral');
 }
 
-// ─── Insights ────────────────────────────────────────────
+// ─── Insights (human-readable) ────────────────────────────
 function renderInsights() {
-  const el = document.getElementById('insightsList');
+  const el       = document.getElementById('insightsList');
   const expenses = transactions.filter(t => t.type === 'expense');
-  if (!expenses.length) {
+  const incomes  = transactions.filter(t => t.type === 'income');
+
+  if (!expenses.length && !incomes.length) {
     el.innerHTML = `<div class="insight-item"><div class="insight-dot gold"></div><span>Add transactions to see personalized insights.</span></div>`;
     return;
   }
@@ -855,44 +1004,58 @@ function renderInsights() {
   const insights = [];
   const now = new Date();
 
-  // Top category
+  // Top spending category
   const catTotals = {};
-  expenses.forEach(t => { catTotals[t.category] = (catTotals[t.category]||0) + t.amount; });
-  const topCat = Object.entries(catTotals).sort((a,b)=>b[1]-a[1])[0];
-  if (topCat) insights.push({ dot:'gold', text:`Top spending: <strong>${topCat[0]}</strong> at ${fmt(topCat[1])}` });
+  expenses.forEach(t => { catTotals[t.category] = (catTotals[t.category] || 0) + t.amount; });
+  const topCat = Object.entries(catTotals).sort((a,b) => b[1]-a[1])[0];
+  if (topCat) {
+    insights.push({ dot:'gold', text:`You spent the most on <strong>${topCat[0]}</strong> — ${fmt(topCat[1])} total` });
+  }
 
   // This week vs last week
-  const wk = weekBounds(now);
+  const wk  = weekBounds(now);
   const lwk = weekBounds(new Date(now - 7*864e5));
-  const thisWk = expenses.filter(t=>inRange(t.date,wk[0],wk[1])).reduce((s,t)=>s+t.amount,0);
-  const lastWk = expenses.filter(t=>inRange(t.date,lwk[0],lwk[1])).reduce((s,t)=>s+t.amount,0);
-  if (lastWk>0) {
-    const diff = ((thisWk-lastWk)/lastWk*100).toFixed(0);
-    const up = diff>0;
-    insights.push({ dot: up?'red':'teal', text: `${up?'↑':'↓'} Spending ${up?'up':'down'} <strong>${Math.abs(diff)}%</strong> vs last week` });
+  const thisWk = expenses.filter(t => inRange(t.date, wk[0],  wk[1])).reduce((s,t) => s+t.amount, 0);
+  const lastWk = expenses.filter(t => inRange(t.date, lwk[0], lwk[1])).reduce((s,t) => s+t.amount, 0);
+
+  if (lastWk > 0 && thisWk > 0) {
+    const diff = ((thisWk - lastWk) / lastWk * 100).toFixed(0);
+    const up   = diff > 0;
+    insights.push({
+      dot: up ? 'red' : 'teal',
+      text: up
+        ? `Your spending increased by <strong>${Math.abs(diff)}%</strong> compared to last week`
+        : `Great — spending dropped by <strong>${Math.abs(diff)}%</strong> from last week`
+    });
   } else if (thisWk > 0) {
-    insights.push({ dot:'teal', text:`You've spent ${fmt(thisWk)} this week` });
+    insights.push({ dot:'teal', text:`You've spent ${fmt(thisWk)} so far this week` });
   }
 
   // Tea insight
-  const teaAmt = catTotals['Tea']||0;
+  const teaAmt = catTotals['Tea'] || 0;
   if (teaAmt > 0) {
-    insights.push({ dot:'gold', text:`Reduce ☕ Tea to save ~${fmt(teaAmt*0.3)}/month` });
+    insights.push({ dot:'gold', text:`Cutting ☕ tea by 30% could save you ~${fmt(teaAmt * 0.3)} this period` });
   }
 
   // Biggest single expense
-  const biggest = expenses.reduce((a,b)=>b.amount>a.amount?b:a, expenses[0]);
-  if (biggest) insights.push({ dot:'red', text:`Biggest expense: ${esc(biggest.description)} — ${fmt(biggest.amount)}` });
-
-  // Savings rate
-  const totalIncome = transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const totalExpense = expenses.reduce((s,t)=>s+t.amount,0);
-  if (totalIncome>0) {
-    const rate = ((totalIncome-totalExpense)/totalIncome*100).toFixed(0);
-    insights.push({ dot: rate>=30?'teal':rate>=10?'gold':'red', text:`Savings rate: <strong>${rate}%</strong> — ${rate>=30?'Excellent!':rate>=10?'Decent, aim higher.':'Consider cutting expenses.'}` });
+  if (expenses.length) {
+    const biggest = expenses.reduce((a,b) => b.amount > a.amount ? b : a, expenses[0]);
+    insights.push({ dot:'red', text:`Biggest single expense: <strong>${esc(biggest.description)}</strong> at ${fmt(biggest.amount)}` });
   }
 
-  el.innerHTML = insights.slice(0,5).map(i=>
+  // Savings rate
+  const totalIncome  = incomes.reduce((s,t) => s + t.amount, 0);
+  const totalExpense = expenses.reduce((s,t) => s + t.amount, 0);
+  if (totalIncome > 0) {
+    const rate = ((totalIncome - totalExpense) / totalIncome * 100).toFixed(0);
+    const msg  = rate >= 30 ? 'Excellent savings discipline! 🏆'
+               : rate >= 10 ? 'Decent — try to save a bit more.'
+               : 'Consider cutting back on expenses.';
+    insights.push({ dot: rate >= 30 ? 'teal' : rate >= 10 ? 'gold' : 'red',
+      text:`You're saving <strong>${rate}%</strong> of your income — ${msg}` });
+  }
+
+  el.innerHTML = insights.slice(0,5).map(i =>
     `<div class="insight-item"><div class="insight-dot ${i.dot}"></div><span>${i.text}</span></div>`
   ).join('');
 }
@@ -904,66 +1067,68 @@ function initCharts() {
     type: 'doughnut',
     data: { labels:[], datasets:[{ data:[], backgroundColor:[], borderWidth:0, hoverOffset:6 }] },
     options: {
-      cutout: '70%', responsive:true, maintainAspectRatio:false,
-      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx=>`₹${ctx.parsed.toLocaleString('en-IN')}` } } },
-      animation: { animateRotate:true, duration:600 }
+      cutout:'70%', responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{ label: ctx=>`₹${ctx.parsed.toLocaleString('en-IN')}` } }
+      },
+      animation:{ animateRotate:true, duration:600 }
     }
   });
 
   const barCtx = document.getElementById('barChart').getContext('2d');
   barChart = new Chart(barCtx, {
-    type: 'bar',
-    data: { labels:[], datasets:[{ data:[], backgroundColor:'rgba(245,200,66,0.7)', borderRadius:6, borderSkipped:false }] },
-    options: {
+    type:'bar',
+    data:{ labels:[], datasets:[{ data:[], backgroundColor:'rgba(245,200,66,0.7)', borderRadius:6, borderSkipped:false }] },
+    options:{
       responsive:true, maintainAspectRatio:false,
-      scales: {
-        x: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'rgba(240,244,255,0.4)',font:{size:10}} },
-        y: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'rgba(240,244,255,0.4)',font:{size:10}, callback:v=>'₹'+v} }
+      scales:{
+        x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'rgba(240,244,255,0.4)',font:{size:10}} },
+        y:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'rgba(240,244,255,0.4)',font:{size:10}, callback:v=>'₹'+v} }
       },
-      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>`₹${ctx.parsed.y.toLocaleString('en-IN')}` } } },
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>`₹${ctx.parsed.y.toLocaleString('en-IN')}` } } },
       animation:{duration:500}
     }
   });
 }
 
 function updateCharts() {
-  const expenses = transactions.filter(t=>t.type==='expense');
+  const expenses = transactions.filter(t => t.type === 'expense');
 
-  // Pie
+  // Pie — expense categories only
   const catTotals = {};
-  expenses.forEach(t=>{ catTotals[t.category]=(catTotals[t.category]||0)+t.amount; });
+  expenses.forEach(t => { catTotals[t.category] = (catTotals[t.category] || 0) + t.amount; });
   const labels = Object.keys(catTotals);
-  const vals   = labels.map(l=>catTotals[l]);
-  const colors = labels.map(l=>(CATS[l]||CATS.Other).color);
-  pieChart.data.labels = labels;
-  pieChart.data.datasets[0].data = vals;
+  const vals   = labels.map(l => catTotals[l]);
+  const colors = labels.map(l => (CATS[l] || CATS.Other).color);
+  pieChart.data.labels                   = labels;
+  pieChart.data.datasets[0].data         = vals;
   pieChart.data.datasets[0].backgroundColor = colors;
   pieChart.update();
 
-  // Legend
-  document.getElementById('catLegend').innerHTML = labels.map((l,i)=>
+  document.getElementById('catLegend').innerHTML = labels.map((l,i) =>
     `<div class="cat-item"><div class="cat-dot" style="background:${colors[i]}"></div>${l}</div>`
   ).join('');
 
-  // Bar - last 7 days
-  const days = [];
+  // Bar — last 7 days expenses
+  const days    = [];
   const daySums = [];
-  for (let i=6; i>=0; i--) {
-    const d = new Date(); d.setDate(d.getDate()-i);
+  for (let i = 6; i >= 0; i--) {
+    const d    = new Date(); d.setDate(d.getDate() - i);
     const dstr = d.toISOString().split('T')[0];
-    const lbl = d.toLocaleDateString('en-IN',{weekday:'short'});
+    const lbl  = d.toLocaleDateString('en-IN', { weekday:'short' });
     days.push(lbl);
-    daySums.push(expenses.filter(t=>t.date===dstr).reduce((s,t)=>s+t.amount,0));
+    daySums.push(expenses.filter(t => t.date === dstr).reduce((s,t) => s+t.amount, 0));
   }
-  barChart.data.labels = days;
-  barChart.data.datasets[0].data = daySums;
+  barChart.data.labels            = days;
+  barChart.data.datasets[0].data  = daySums;
   barChart.update();
 }
 
 // ─── Goal modal ───────────────────────────────────────────
 function openGoalModal() {
   if (goal) {
-    document.getElementById('goalNameInput').value = goal.name;
+    document.getElementById('goalNameInput').value   = goal.name;
     document.getElementById('goalAmountInput').value = goal.amount;
   }
   document.getElementById('goalModal').classList.add('open');
@@ -972,14 +1137,14 @@ function closeGoalModal() {
   document.getElementById('goalModal').classList.remove('open');
 }
 function saveGoal() {
-  const name = document.getElementById('goalNameInput').value.trim();
+  const name   = document.getElementById('goalNameInput').value.trim();
   const amount = parseFloat(document.getElementById('goalAmountInput').value);
-  if (!name || !amount || amount<=0) return showToast('⚠️ Enter goal details');
+  if (!name || !amount || amount <= 0) return showToast('⚠️ Enter valid goal details', 'neutral');
   goal = { name, amount };
   localStorage.setItem('aurum_goal', JSON.stringify(goal));
   closeGoalModal();
   renderGoal();
-  showToast('🎯 Goal saved!');
+  showToast('🎯 Goal saved!', 'neutral');
 }
 document.getElementById('goalModal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeGoalModal();
@@ -993,24 +1158,31 @@ function fmt(n) {
 }
 
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function showToast(msg) {
+let _toastTimer;
+function showToast(msg, type = 'neutral') {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
+  t.textContent = msg;
+  t.className   = `toast ${type}-toast`;
+  // Force reflow so transition fires
+  void t.offsetWidth;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
 function weekBounds(d) {
   const day = d.getDay();
-  const mon = new Date(d); mon.setDate(d.getDate()-((day+6)%7)); mon.setHours(0,0,0,0);
-  const sun = new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
+  const mon = new Date(d); mon.setDate(d.getDate() - ((day+6)%7)); mon.setHours(0,0,0,0);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23,59,59,999);
   return [mon, sun];
 }
 
 function inRange(dateStr, start, end) {
-  const d = new Date(dateStr+'T00:00:00');
+  const d = new Date(dateStr + 'T00:00:00');
   return d >= start && d <= end;
 }
 </script>
